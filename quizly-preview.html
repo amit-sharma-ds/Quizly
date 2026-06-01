@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Quizly Preview</title>
+  <style>
+    :root {
+      --bg: #080814;
+      --cyan: #00dcff;
+      --purple: #8c3cff;
+      --pink: #ff3cb4;
+      --text: #d2d2ff;
+      --muted: #646496;
+      --panel: rgba(12, 12, 32, .82);
+      --line: rgba(90, 90, 150, .8);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at 24% 18%, rgba(0, 220, 255, .12), transparent 28%),
+        radial-gradient(circle at 76% 80%, rgba(255, 60, 180, .10), transparent 30%),
+        var(--bg);
+      color: var(--text);
+      font-family: "Segoe UI", Arial, sans-serif;
+      overflow: hidden;
+    }
+    canvas { position: fixed; inset: 0; opacity: .75; }
+    .frame {
+      position: relative;
+      width: 900px;
+      height: 620px;
+      overflow: hidden;
+      border: 1px solid rgba(80, 80, 140, .7);
+      background: rgba(8, 8, 20, .76);
+      box-shadow: 0 0 40px rgba(0, 220, 255, .14), inset 0 0 28px rgba(140, 60, 255, .08);
+    }
+    .screen { position: absolute; inset: 0; padding: 0; }
+    .hidden { display: none; }
+    h1 {
+      margin: 26px 0 2px;
+      text-align: center;
+      font-size: 72px;
+      line-height: 1;
+      letter-spacing: 0;
+      color: #d8fbff;
+      text-shadow: 0 0 8px var(--cyan), 0 0 24px rgba(0, 220, 255, .8);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      50% { text-shadow: 0 0 10px #46f1ff, 0 0 34px rgba(0, 220, 255, .95); }
+    }
+    .subtitle, .tagline { text-align: center; color: var(--muted); font-size: 12px; }
+    .hint { width: 660px; margin: 22px auto 6px; color: #9696c8; font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
+    textarea {
+      display: block;
+      width: 660px;
+      height: 240px;
+      margin: 0 auto;
+      padding: 12px 14px;
+      resize: none;
+      border: 1px solid #3c3c78;
+      outline: 0;
+      background: #0a0a19;
+      color: var(--text);
+      font: 13px/1.48 Consolas, "Courier New", monospace;
+      box-shadow: inset 0 0 18px rgba(0, 0, 0, .42);
+    }
+    .controls {
+      width: 660px;
+      margin: 11px auto 0;
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 60px;
+      align-items: center;
+      color: var(--purple);
+      font-size: 12px;
+    }
+    .controls label { color: var(--cyan); display: block; margin-bottom: 5px; text-align: center; }
+    input[type="range"] { width: 300px; accent-color: var(--cyan); }
+    button {
+      border: 0;
+      color: #fff;
+      cursor: pointer;
+      font-weight: 700;
+      background: linear-gradient(135deg, #0078c8, var(--cyan));
+      box-shadow: 0 0 18px rgba(0, 220, 255, .4);
+      transition: transform .15s ease, box-shadow .15s ease;
+    }
+    button:hover { transform: translateY(-1px); box-shadow: 0 0 26px rgba(0, 220, 255, .65); }
+    .generate {
+      display: block;
+      width: 250px;
+      height: 48px;
+      margin: 18px auto 0;
+      font-size: 15px;
+      border-radius: 8px;
+    }
+    .pdf-btn { width: 140px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #5a1e96, var(--pink)); font-size: 12px; }
+    .tagline { margin-top: 8px; color: #46466e; }
+    .panel {
+      position: relative;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      box-shadow: 0 0 18px rgba(0, 220, 255, .10), inset 0 0 18px rgba(140, 60, 255, .06);
+      border-radius: 8px;
+    }
+    .topbar {
+      position: absolute;
+      left: 25px;
+      top: 18px;
+      width: 850px;
+      height: 52px;
+      display: grid;
+      grid-template-columns: 95px 1fr 95px 70px;
+      align-items: center;
+      padding: 0 16px;
+      font-size: 12px;
+    }
+    .brand { color: var(--cyan); font-weight: 700; font-size: 13px; }
+    .easy { color: #00ffa0; }
+    .score { text-align: right; }
+    .progress {
+      position: absolute;
+      left: 25px;
+      top: 78px;
+      width: 850px;
+      height: 8px;
+      background: #191937;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .progress div { height: 100%; width: 38%; background: linear-gradient(90deg, var(--purple), var(--cyan)); }
+    .meta {
+      position: absolute;
+      top: 92px;
+      left: 25px;
+      width: 850px;
+      display: flex;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: 11px;
+    }
+    .type { color: var(--purple); }
+    .question {
+      position: absolute;
+      left: 60px;
+      top: 116px;
+      width: 780px;
+      height: 130px;
+      padding: 38px 18px 8px;
+      font-size: 16px;
+      line-height: 1.35;
+    }
+    .panel::before {
+      content: attr(data-label);
+      position: absolute;
+      top: 10px;
+      left: 14px;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+    .answers {
+      position: absolute;
+      left: 60px;
+      top: 278px;
+      width: 780px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px 22px;
+    }
+    .answer {
+      height: 56px;
+      border-radius: 8px;
+      background: #12122e;
+      border: 1px solid #302060;
+      box-shadow: 0 0 14px rgba(140, 60, 255, .22);
+      font-weight: 400;
+    }
+    .answer.correct { border-color: #00ffa0; background: rgba(0, 120, 80, .45); box-shadow: 0 0 22px rgba(0, 255, 160, .35); }
+    .answer.wrong { border-color: #ff3c50; background: rgba(130, 20, 40, .42); box-shadow: 0 0 22px rgba(255, 60, 80, .30); }
+    .answer:disabled { cursor: default; opacity: 1; }
+    .chunk {
+      position: absolute;
+      left: 60px;
+      top: 456px;
+      width: 780px;
+      height: 60px;
+      padding: 22px 14px 0;
+      color: #505078;
+      font-size: 11px;
+      overflow: hidden;
+    }
+    .back {
+      position: absolute;
+      left: 360px;
+      top: 535px;
+      width: 180px;
+      height: 40px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #961e64, var(--pink));
+    }
+    .toast {
+      position: absolute;
+      inset: 0;
+      display: none;
+      place-items: center;
+      pointer-events: none;
+      font-size: 52px;
+      font-weight: 800;
+      text-shadow: 0 0 24px currentColor;
+    }
+    .toast.show { display: grid; }
+    .result-panel { position: absolute; inset: 0; display: none; background: rgba(8,8,20,.95); }
+    .result-panel.show { display: block; }
+    .result-graph { position: absolute; right: 56px; top: 150px; width: 300px; padding: 18px; color: var(--text); font-size: 12px; }
+    .bar-row { display: grid; grid-template-columns: 58px 1fr 30px; align-items: center; gap: 8px; margin: 14px 0; }
+    .bar-track { height: 18px; border-radius: 10px; background: #191937; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 10px; }
+    .bar-fill.correct { background: #00ffa0; }
+    .bar-fill.wrong { background: #ff3c50; }
+  </style>
+</head>
+<body>
+  <canvas id="particles"></canvas>
+  <main class="frame">
+    <section id="home" class="screen">
+      <h1>Quizly</h1>
+      <div class="subtitle">DOCUMENT-DRIVEN QUIZ GENERATOR · CODE OLYMPICS 2026</div>
+      <div class="hint"><span>Paste notes/article text or upload a text-based PDF below:</span><button class="pdf-btn" id="pdf">UPLOAD PDF</button></div>
+      <input id="pdfFile" type="file" accept="application/pdf,.pdf" hidden />
+      <textarea id="notes">Artificial intelligence (AI) is the simulation of human intelligence processes by computer systems. Machine learning is a subset of AI that allows computers to learn from data without being explicitly programmed. Deep learning uses neural networks with many layers to analyze data. Natural language processing enables computers to understand and generate human language. Computer vision allows machines to interpret and make decisions based on visual data from the world.</textarea>
+      <div class="controls">
+        <div>
+          <label id="count">Questions: 8</label>
+          <input id="range" type="range" min="4" max="20" value="8" />
+        </div>
+        <div>Mode: Auto-Adaptive</div>
+      </div>
+      <button class="generate" id="generate">GENERATE QUIZ →</button>
+      <div class="tagline">Powered by Rule-Based Pseudo-RAG Engine</div>
+    </section>
+    <section id="quiz" class="screen hidden">
+      <div class="panel topbar">
+        <div class="brand">QUIZLY</div>
+        <div>DOCUMENT QUIZ</div>
+        <div class="easy">◎ EASY</div>
+        <div class="score" id="score">SCORE: 0</div>
+      </div>
+      <div class="progress"><div></div></div>
+      <div class="meta"><span id="qnum">Q 1 of 8</span><span class="type" id="qtype">[ MULTIPLE CHOICE ]</span></div>
+      <div class="panel question" id="question" data-label="SOURCE CONTEXT">What does machine learning allow computers to do?</div>
+      <div class="answers">
+        <button class="answer"></button>
+        <button class="answer"></button>
+        <button class="answer"></button>
+        <button class="answer"></button>
+      </div>
+      <div class="panel chunk" id="chunk" data-label="RETRIEVED CHUNK">Machine learning is a subset of AI that allows computers to learn from data without being explicitly programmed.</div>
+      <button class="back" id="back">HOME ↺</button>
+      <div class="toast" id="toast"></div>
+      <div class="result-panel" id="result">
+        <h1 style="font-size:42px;margin-top:42px">Quiz Complete</h1>
+        <div class="subtitle" id="resultScore">Score: 0/0</div>
+        <div class="panel result-graph" data-label="CORRECT VS WRONG">
+          <div class="bar-row"><span>Correct</span><div class="bar-track"><div class="bar-fill correct" id="okBar"></div></div><b id="okNum">0</b></div>
+          <div class="bar-row"><span>Wrong</span><div class="bar-track"><div class="bar-fill wrong" id="badBar"></div></div><b id="badNum">0</b></div>
+        </div>
+        <button class="back" id="resultHome" style="top:510px">HOME</button>
+      </div>
+    </section>
+  </main>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    const range = document.querySelector("#range");
+    const count = document.querySelector("#count");
+    range.addEventListener("input", () => count.textContent = `Questions: ${range.value}`);
+    const pdfFile = document.querySelector("#pdfFile");
+    const notes = document.querySelector("#notes");
+    document.querySelector("#pdf").addEventListener("click", () => pdfFile.click());
+    pdfFile.addEventListener("change", async () => {
+      const file = pdfFile.files && pdfFile.files[0];
+      if (!file) return;
+      const raw = new TextDecoder("latin1").decode(await file.arrayBuffer());
+      let text = "";
+      const readable = (s) => {
+        const ascii = (s.match(/[A-Za-z0-9 .,;:'"()\-]/g) || []).length;
+        const letters = (s.match(/[A-Za-z]/g) || []).length;
+        return s.length > 8 && letters > 3 && ascii / Math.max(1, s.length) > .75;
+      };
+      for (const match of raw.matchAll(/\((?:\\.|[^\\)])*\)/g)) {
+        const s = match[0].slice(1, -1)
+          .replaceAll("\\n", "\n").replaceAll("\\r", "\r").replaceAll("\\t", "\t")
+          .replaceAll("\\(", "(").replaceAll("\\)", ")").replaceAll("\\\\", "\\");
+        if (readable(s)) text += s + " ";
+      }
+      if (text.trim().length < 50) {
+        const cleaned = raw.replace(/[^\x20-\x7E\n\r\t]+/g, " ").replace(/\s+/g, " ");
+        for (const match of cleaned.matchAll(/([A-Za-z][A-Za-z0-9,.;:'"()\- ]{40,})/g)) {
+          if (readable(match[1])) text += match[1] + " ";
+          if (text.length > 8000) break;
+        }
+      }
+      text = text.replace(/\s+/g, " ").trim();
+      if (text.length < 50) alert("Is PDF se enough text read nahi hua. Text-based PDF try karo.");
+      else notes.value = text;
+      pdfFile.value = "";
+    });
+    document.querySelector("#generate").addEventListener("click", () => {
+      document.querySelector("#home").classList.add("hidden");
+      document.querySelector("#quiz").classList.remove("hidden");
+      resetAnswers();
+    });
+    document.querySelector("#back").addEventListener("click", () => {
+      document.querySelector("#quiz").classList.add("hidden");
+      document.querySelector("#home").classList.remove("hidden");
+    });
+    function resetAnswers() {
+      document.querySelector("#score").textContent = "SCORE: 0";
+      document.querySelector("#toast").className = "toast";
+      document.querySelectorAll(".answer").forEach((btn) => {
+        btn.disabled = false;
+        btn.classList.remove("correct", "wrong");
+        btn.textContent = btn.textContent.replace(/^[✓✕]\s+/, "");
+      });
+    }
+    document.querySelectorAll(".answer").forEach((btn) => btn.addEventListener("click", () => {
+      const ok = btn.dataset.correct === "true";
+      document.querySelectorAll(".answer").forEach((b) => {
+        b.disabled = true;
+        if (b.dataset.correct === "true") b.classList.add("correct");
+      });
+      btn.classList.add(ok ? "correct" : "wrong");
+      btn.textContent = `${ok ? "✓" : "✕"} ${btn.textContent.replace(/^[✓✕]\s+/, "")}`;
+      document.querySelector("#score").textContent = `SCORE: ${ok ? 1 : 0}`;
+      const toast = document.querySelector("#toast");
+      toast.textContent = ok ? "✓ CORRECT!" : "✕ WRONG";
+      toast.style.color = ok ? "#00ffa0" : "#ff3c50";
+      toast.classList.add("show");
+      setTimeout(() => toast.classList.remove("show"), 1100);
+    }));
+
+    const canvas = document.querySelector("#particles");
+    const ctx = canvas.getContext("2d");
+    const dots = Array.from({ length: 55 }, () => ({
+      x: Math.random(), y: Math.random(), r: 1 + Math.random() * 2,
+      dx: -.00045 + Math.random() * .0009, dy: -.00035 + Math.random() * .0007
+    }));
+    function resize() {
+      canvas.width = innerWidth * devicePixelRatio;
+      canvas.height = innerHeight * devicePixelRatio;
+    }
+    addEventListener("resize", resize); resize();
+    function tick() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (const d of dots) {
+        d.x = (d.x + d.dx + 1) % 1; d.y = (d.y + d.dy + 1) % 1;
+        ctx.beginPath();
+        ctx.fillStyle = Math.random() > .5 ? "rgba(0,220,255,.45)" : "rgba(255,60,180,.35)";
+        ctx.arc(d.x * canvas.width, d.y * canvas.height, d.r * devicePixelRatio, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      requestAnimationFrame(tick);
+    }
+    tick();
+  </script>
+  <script>
+    (() => {
+      const $ = (s) => document.querySelector(s);
+      const $$ = (s) => [...document.querySelectorAll(s)];
+      let qs = [], qi = 0, sc = 0;
+      const clean = (t) => t.replace(/[^\S\r\n]+/g, " ").replace(/\s+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+      const cap = (s) => s ? s[0].toUpperCase() + s.slice(1) : s;
+      const terms = (text) => {
+        const stop = new Set("the a an is are was were in on at to of and or but it its this that with for as by from be has have had not can do into more their there than then when where what which who why how".split(" "));
+        const f = {};
+        for (const w of text.toLowerCase().split(/\W+/)) if (w.length > 3 && !stop.has(w)) f[w] = (f[w] || 0) + 1;
+        return f;
+      };
+      const scoreChunk = (c, f) => Object.keys(terms(c)).reduce((s, w) => s + (f[w] || 0), 0);
+      const makeQuestion = (chunk, freq, i) => {
+        const local = terms(chunk);
+        const words = chunk.split(/\s+/).map(w => w.replace(/\W/g, "")).filter(w => w.length > 4);
+        const key = Object.keys(local).sort((a, b) => (freq[b] || 0) - (freq[a] || 0))[0] || words[0];
+        if (!key) return null;
+        const other = Object.keys(freq).filter(w => w !== key && !chunk.toLowerCase().includes(w)).sort((a, b) => (freq[b] || 0) - (freq[a] || 0)).slice(0, 10).sort(() => Math.random() - .5).slice(0, 3).map(cap);
+        let opts = [cap(key), ...other]; while (opts.length < 4) opts.push(["Concept", "Process", "System", "Method"][opts.length]);
+        if (i % 3 === 1 && words.length) {
+          const ans = words[Math.floor(Math.random() * words.length)];
+          return { type: "FILL IN THE BLANK", prompt: `Fill in the blank:\n"${chunk.replace(new RegExp("\\b" + ans + "\\b", "i"), "_____")}"`, answer: cap(ans), options: [cap(ans), ...opts.filter(o => o.toLowerCase() !== ans.toLowerCase()).slice(0, 3)].sort(() => Math.random() - .5), chunk };
+        }
+        if (i % 3 === 2) return { type: "TRUE / FALSE", prompt: `True or False:\n"${chunk}"`, answer: "True", options: ["True", "False"], chunk };
+        return { type: "MULTIPLE CHOICE", prompt: `What best describes this statement?\n"${chunk.length > 120 ? chunk.slice(0, 120) + "..." : chunk}"`, answer: cap(key), options: opts.sort(() => Math.random() - .5), chunk };
+      };
+      const makeQuiz = (text, limit) => {
+        const chunks = clean(text).split(/[.!?\n]+/).map(s => s.trim()).filter(s => s.length > 35 && /[A-Za-z]{4,}/.test(s));
+        const f = terms(text);
+        return [...chunks].sort((a, b) => scoreChunk(b, f) - scoreChunk(a, f)).slice(0, limit).map((c, i) => makeQuestion(c, f, i)).filter(Boolean);
+      };
+      const render = () => {
+        const q = qs[qi];
+        $("#qnum").textContent = `Q ${qi + 1} of ${qs.length}`;
+        $("#qtype").textContent = `[ ${q.type} ]`;
+        $("#question").textContent = q.prompt;
+        $("#chunk").textContent = q.chunk;
+        $("#score").textContent = `SCORE: ${sc}`;
+        $(".progress div").style.width = `${((qi + 1) / qs.length) * 100}%`;
+        $$(".answer").forEach((b, i) => {
+          b.style.display = q.options[i] ? "" : "none";
+          b.disabled = false; b.className = "answer";
+          b.dataset.correct = q.options[i] === q.answer ? "true" : "false";
+          b.textContent = q.options[i] || "";
+        });
+        $("#toast").className = "toast";
+      };
+      $("#generate").addEventListener("click", (e) => {
+        e.preventDefault(); e.stopImmediatePropagation();
+        qs = makeQuiz($("#notes").value, Number($("#range").value)); qi = 0; sc = 0;
+        if (!qs.length) { alert("Quiz banane ke liye readable text chahiye. PDF text area me sahi se aaya hai ya nahi check karo."); return; }
+        $("#home").classList.add("hidden"); $("#quiz").classList.remove("hidden"); render();
+      }, true);
+      $$(".answer").forEach(b => b.addEventListener("click", (e) => {
+        e.preventDefault(); e.stopImmediatePropagation();
+        const ok = b.dataset.correct === "true"; if (ok) sc++;
+        $$(".answer").forEach(x => { x.disabled = true; if (x.dataset.correct === "true") x.classList.add("correct"); });
+        b.classList.add(ok ? "correct" : "wrong");
+        $("#score").textContent = `SCORE: ${sc}`;
+        const t = $("#toast"); t.textContent = ok ? "CORRECT!" : "WRONG"; t.style.color = ok ? "#00ffa0" : "#ff3c50"; t.classList.add("show");
+        setTimeout(() => { if (++qi < qs.length) render(); else { alert(`Quiz complete! Score: ${sc}/${qs.length}`); $("#quiz").classList.add("hidden"); $("#home").classList.remove("hidden"); } }, 900);
+      }, true));
+      $("#pdfFile").addEventListener("change", async (e) => {
+        e.stopImmediatePropagation();
+        const file = e.target.files && e.target.files[0]; if (!file) return;
+        try {
+          const data = new Uint8Array(await file.arrayBuffer());
+          if (!window.pdfjsLib) throw new Error("pdfjs missing");
+          pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+          const pdf = await pdfjsLib.getDocument({ data }).promise;
+          let text = "";
+          for (let p = 1; p <= pdf.numPages; p++) {
+            const page = await pdf.getPage(p), content = await page.getTextContent();
+            text += content.items.map(i => i.str).join(" ") + "\n";
+          }
+          text = clean(text);
+          if (text.length < 50) alert("Is PDF se readable text nahi nikla. Scanned/image PDF hai to OCR chahiye.");
+          else { $("#notes").value = text; $("#notes").focus(); $("#notes").setSelectionRange(0, 0); }
+        } catch (err) { alert("PDF read nahi hua. Internet on karke retry karo, ya PDF ka text paste karo."); }
+        e.target.value = "";
+      }, true);
+    })();
+  </script>
+</body>
+</html>
