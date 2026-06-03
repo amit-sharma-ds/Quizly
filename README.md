@@ -16,7 +16,7 @@
 
 <br/>
 
-![Quizly Demo](https://img.shields.io/badge/Demo-Interactive%20Preview%20Available-cyan?style=flat-square](https://cerulean-klepon-7d37c5.netlify.app/))
+[![Quizly Demo](https://img.shields.io/badge/Demo-Interactive%20Preview%20Available-cyan?style=flat-square)](https://cerulean-klepon-7d37c5.netlify.app/)
 
 </div>
 
